@@ -1,0 +1,11 @@
+---
+- name: Waiting for Cluster
+  hosts: masters-slaves
+  gather_facts: no 
+  vars_files:
+    - vm-vars.yml
+  tasks:
+  - name: Checking if Machines are ready
+    wait_for_connection:
+      delay: 10
+      timeout: 300

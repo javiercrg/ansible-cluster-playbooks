@@ -1,0 +1,30 @@
+---
+- name: Instalacion previa a Spark
+  hosts: masters-slaves
+  remote_user: "{{ vm_username }}"
+  become: yes
+  vars_files:
+    - vm-vars.yml
+
+  tasks:
+  - name: Instalacion inicial
+    shell: |
+      yum clean all
+      yum update -y
+      yum install epel-release ncdu wget python3 -y
+
+  - name: Instalacion Java
+    shell: |
+      yum install java java-devel -y
+      touch /etc/profile.d/java.sh
+    tags:
+       - installjava
+
+  - name: Editando variables de entorno Java
+    blockinfile:
+      path: /etc/profile.d/java.sh
+      block: |
+        export JAVA_HOME=/usr/lib/jvm/java
+        export PATH=$JAVA_HOME/bin:$PATH
+    tags:
+       - envjava

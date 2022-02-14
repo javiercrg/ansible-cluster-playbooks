@@ -1,0 +1,90 @@
+---
+- name: Instalacion Scala - Miniconda
+  hosts: masters-slaves
+  remote_user: "{{ vm_username }}"
+  become: yes
+  vars_files:
+    - vm-vars.yml
+
+  tasks:
+  - name: Instalacion Scala
+    shell: |
+      wget https://downloads.lightbend.com/scala/2.13.1/scala-2.13.1.rpm
+      yum install scala-2.13.1.rpm -y
+      rm scala-2.13.1.rpm
+    tags:
+       - installscala
+
+  - name: Creando /opt/app
+    shell: |
+      mkdir /opt/app
+    tags:
+       - create_opt_app
+
+  - name: Descarga Miniconda
+    get_url:
+      url: https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+      dest: /opt/app/miniconda.sh
+      mode: 0755
+    tags:
+       - download_miniconda
+
+  - name: Instalacion Miniconda
+    shell: "/opt/app/miniconda.sh -b -p /opt/app/miniconda3 creates=/opt/app/miniconda3 executable=/bin/bash"
+    tags:
+       - installminiconda
+
+  - name: Configurando usuario miniconda
+    shell: |
+      /opt/app/miniconda3/bin/conda init
+    become: no
+    tags:
+       - configconda_usuario
+
+  - name: Configurando usuario miniconda root
+    shell: |
+      /opt/app/miniconda3/bin/conda init
+    tags:
+       - configconda_root
+
+  - name: Configurando usuario miniconda auto inicio
+    shell: |
+       source ~/.bashrc
+       conda config --set auto_activate_base false
+    tags:
+       - configconda_root_ini
+
+  - name: Configurando usuario miniconda auto inicio
+    shell: |
+       "source /home/{{ vm_username }}/.bashrc"
+       conda config --set auto_activate_base false
+    become: "{{ vm_username }}"
+    tags:
+       - configconda_usuario_ini
+
+  - name: Eliminando fichero miniconda
+    shell: |
+       rm /opt/app/miniconda.sh
+    tags:
+       - rmconda
+
+  - name: Update miniconda
+    shell: |
+       source ~/.bashrc
+       conda update conda -y
+    tags:
+       - updateconda
+
+  - name: Instalando PySpark
+    shell: |
+       source ~/.bashrc
+       conda install pyspark -y
+    tags:
+       - install_pyspark
+
+  - name: Limpiando miniconda
+    shell: |
+       source ~/.bashrc
+       conda clean -a -y
+    tags:
+       - cleanconda

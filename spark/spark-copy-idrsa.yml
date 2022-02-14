@@ -1,0 +1,38 @@
+- name: Save id_rsa_master_pub
+  hosts: masters
+  remote_user: "{{ vm_username }}"
+  become: yes
+  vars_files:
+    - vm-vars.yml
+  tasks:
+  - name: Copy file with owner and permissions
+    fetch:
+      src: /home/{{ vm_username }}/.ssh/id_rsa.pub
+      dest: /home/usuario/ansible/
+      flat: yes
+- name: Authorized Keys Slaves
+  hosts: slaves
+  remote_user: "{{ vm_username }}"
+  become: yes
+  vars_files:
+    - vm-vars.yml
+  tasks:
+  - name: Copiar id_rsa.pub en authorized keys de esclavos
+    authorized_key:
+      user: "{{ vm_username }}"
+      state: present
+      key: "{{ lookup('file', '/home/usuario/ansible/id_rsa.pub') }}"
+    tags:
+       - sshslaves
+- name: Change spark logs owner
+  hosts: masters-slaves
+  remote_user: "{{ vm_username }}"
+  become: yes
+  vars_files:
+    - vm-vars.yml
+  tasks:
+  - name: "Fixing logs owner"
+    shell:
+      "chown -R {{ vm_username }}:{{ vm_username }} /opt/app/spark-2.4.4-bin-hadoop2.7"
+    tags:
+       - fixLogs

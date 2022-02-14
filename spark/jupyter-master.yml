@@ -1,0 +1,41 @@
+- name: Instalacion Jupyter
+  hosts: masters
+  remote_user: "{{ vm_username }}"
+  become: yes
+  vars_files:
+    - vm-vars.yml
+
+  tasks:
+  - name: Creando directorio Notebooks
+    shell: |
+       mkdir -p $HOME/notebooks
+    become: no
+    tags:
+       - homenotebooks
+
+  - name: Instalando Jupyter
+    shell: |
+       source ~/.bashrc
+       conda install -c conda-forge jupyterlab -y
+    tags:
+       - installjupy
+
+  - name: Activando conda, creando config jupyter
+    shell: |
+       source ~/.bashrc
+       conda activate
+       jupyter notebook --generate-config
+    become: no
+    tags:
+      - configjupy
+
+  - name: Editando archivo de configuracion jupyter
+    blockinfile:
+      path: "/home/{{ vm_username }}/.jupyter/jupyter_notebook_config.py"
+      block: |
+         c.NotebookApp.ip = '{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}'
+         c.NotebookApp.notebook_dir = '/home/{{ vm_username }}/notebooks/'
+         c.NotebookApp.port = 8090
+         c.NotebookApp.open_browser = False
+    tags:
+       - editconfigjupy

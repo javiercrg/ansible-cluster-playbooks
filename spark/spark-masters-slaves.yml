@@ -1,0 +1,109 @@
+- name: Instalacion conjunta Spark
+  hosts: masters-slaves
+  remote_user: "{{ vm_username }}"
+  become: yes
+  vars:
+     spark_master_ip: "{{ lookup('file', '{{spark_master_path}}{{ spark_master }}') }}"
+  vars_files:
+    - vm-vars.yml
+    - cluster-hosts.yml
+  tasks:
+
+  - name: Descarga Spark
+    get_url:
+      url:  https://archive.apache.org/dist/spark/spark-2.4.4/spark-2.4.4-bin-hadoop2.7.tgz
+      dest: /opt/app/
+      mode: 0755
+    tags:
+       - download_spark
+
+  - name: Descomprimiendo archivos
+    unarchive:
+      src: /opt/app/spark-2.4.4-bin-hadoop2.7.tgz
+      dest: /opt/app/
+      remote_src: yes
+    tags:
+       - unzip_spark
+
+  - name: Owner directorio Spark
+    shell: |
+      "chown -R {{ vm_username }}:{{ vm_username }} /opt/app/spark-2.4.4-bin-hadoop2.7"
+      ln -s -f /opt/app/spark-2.4.4-bin-hadoop2.7 /opt/app/spark
+    tags:
+       - ownerspark
+
+  - name: Owner directorio url Spark
+    shell: |
+      chown -R {{ vm_username }}:{{ vm_username }} /opt/app/spark
+    tags:
+       - ownerspark
+
+  - name: Eliminando archivo Spark
+    shell: |
+       rm /opt/app/spark-2.4.4-bin-hadoop2.7.tgz
+    tags:
+       - rmsparkzip
+
+  - name: Directorios Spark
+    shell: |
+      mkdir /opt/app/spark/local
+      mkdir /opt/app/spark/data /opt/app/spark/logs /opt/app/spark/pid /opt/app/spark/worker
+      chmod a+w /opt/app/spark/data /opt/app/spark/logs /opt/app/spark/pid /opt/app/spark/worker
+    tags:
+       - dirspark
+
+  - name: Creando env Spark
+    shell: |
+      touch /etc/profile.d/spark.sh
+    tags:
+       - cenvspark
+  - name: Variable de entorno Spark
+    lineinfile:
+      path: /etc/profile.d/spark.sh
+      line: export SPARK_HOME=/opt/app/spark
+    tags:
+       - envspark
+
+  - name: Load variable entorno Spark
+    shell: |
+      source /etc/profile.d/spark.sh
+    tags:
+       - loadenvspark
+
+  - name: Editando plantilla spark
+    shell: |
+       cp /opt/app/spark/conf/spark-env.sh.template /opt/app/spark/conf/spark-env.sh
+    tags:
+       - templatespark
+
+  - name: Rellenado plantilla spark
+    blockinfile:
+      path: /opt/app/spark/conf/spark-env.sh
+      block: |
+        export SPARK_LOCAL_IP=`/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1`
+        export SPARK_LOCAL_HOSTNAME=$SPARK_LOCAL_IP
+        _MASTER_IP_={{ masters | first }}
+        export SPARK_MASTER_IP=$_MASTER_IP_
+        export SPARK_MASTER_HOST=$_MASTER_IP_
+        export SPARK_WORKER_INSTANCES=1
+        export SPARK_WORKER_CORES=1
+        export SPARK_WORKER_MEMORY=1G
+        export SPARK_DRIVER_MEMORY=2G
+        export SPARK_CONF_DIR=$SPARK_HOME/conf
+        export SPARK_WORKER_DIR=$SPARK_HOME/local/worker
+        export SPARK_LOCAL_DIRS=$SPARK_HOME/local/data
+        export SPARK_LOG_DIR=$SPARK_HOME/local/logs
+        export SPARK_PID_DIR=$SPARK_HOME/local/pid
+        export PYSPARK_PYTHON=/opt/app/miniconda3/bin/python3
+        export PYSPARK_DRIVER_PYTHON=/opt/app/miniconda3/bin/python3
+        export PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-0.10.7-src.zip:$SPARK_HOME/python/lib/pyspark.zip:$PYTHONPATH
+    tags:
+       - wtemplatespark
+
+  - name: hosts master-slave en etc hosts
+    lineinfile:
+      path: /etc/hosts
+      line: "{{ item.ip }} {{ item.name }}"
+    with_items: "{{ wn }}"
+    tags:
+       - etchosts-masterslaves

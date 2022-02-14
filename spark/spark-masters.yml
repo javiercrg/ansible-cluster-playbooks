@@ -1,0 +1,78 @@
+- name: Instalacion Spark solo master
+  hosts: masters
+  remote_user: "{{ vm_username }}"
+  become: yes
+  vars_files:
+    - vm-vars.yml
+    - cluster-hosts.yml
+  tasks:
+
+  - name: Editando plantilla default conf
+    shell: |
+       cp /opt/app/spark/conf/spark-defaults.conf.template  /opt/app/spark/conf/spark-defaults.conf
+    tags:
+       - conftemplatespark
+
+  - name: Rellenado plantilla spark
+    blockinfile:
+      path: /opt/app/spark/conf/spark-defaults.conf
+      block: |
+        spark.ui.port=8082
+        spark.master spark://{{ ansible_default_ipv4.address }}:7077
+        spark.driver.cores 2
+        spark.driver.memory 2g
+        spark.driver.maxResultSize 0
+        spark.executor.memory 1g
+        spark.executor.cores 1
+        spark.serializer org.apache.spark.serializer.KryoSerializer
+        spark.rdd.compress true
+        spark.kryoserializer.buffer.max 128m
+    tags:
+       - wconftemplatespark
+
+  - name: Iniciar Spark Master
+    shell: |
+      /opt/app/spark/sbin/start-master.sh
+    tags:
+       - runsparkmaster
+
+  - name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
+    openssh_keypair:
+      path: "/home/{{ vm_username }}/.ssh/id_rsa"
+      owner: "{{ vm_username }}"
+      group: "{{ vm_username }}"
+    tags: create_pub
+
+  - name: Copiar id_rsa a authorized keys
+    shell: |
+      cat $HOME/.ssh/id_rsa.pub >> $HOME/.ssh/authorized_keys
+    become: no
+    tags:
+       - sshauth
+
+  - name: Acceso ssh
+    shell: |
+      chmod 600 $HOME/.ssh/authorized_keys
+    tags:
+       - chmodssh
+
+  - name: Editando plantilla conf slaves
+    shell: |
+       cp /opt/app/spark/conf/slaves.template /opt/app/spark/conf/slaves
+    tags:
+       - confslaves
+  - name: Reemplazando localhost
+    replace:
+      path: /opt/app/spark/conf/slaves
+      regexp: 'localhost'
+      replace: "#"
+    tags:
+       - replace
+
+  - name: Añadiendo esclavos a la configuarcion
+    lineinfile:
+      path: /opt/app/spark/conf/slaves
+      line: "{{ item }}"
+    with_items: "{{ slaves }}"
+    tags:
+       - addslaves

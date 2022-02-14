@@ -1,0 +1,15 @@
+- name: Parando cluster spark
+  hosts: masters
+  remote_user: "{{ vm_username }}"
+  become: yes
+  vars_files:
+    - vm-vars.yml
+
+  tasks:
+
+  - name: Parando maestro y esclavos Spark
+    shell: |
+      /opt/app/spark/sbin/stop-all.sh
+    become: no
+    tags:
+       - rnspark
