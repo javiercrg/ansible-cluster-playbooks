@@ -1,0 +1,27 @@
+---
+- name: Configure VM
+  import_playbook: create-vm.yml
+- name: Machines verification
+  import_playbook: wait-connection.yml
+- name: Configure Java
+  import_playbook: java-spark.yml
+- name: Scala & Miniconda
+  import_playbook: scala-miniconda.yml
+- name: Jupyter
+  import_playbook: jupyter-master.yml
+- name: Spark - Master & Slaves
+  import_playbook: spark-masters-slaves.yml
+- name: Spark - Masters
+  import_playbook: spark-masters.yml
+- name: Spark - Config Authorized keys
+  import_playbook: spark-copy-idrsa.yml
+- name: Spark - Run Cluster
+  import_playbook: run-spark.yml
+- name: Kafka - Install Kafka
+  import_playbook: kafka.yml
+- name: Kafka - Kafka & Zookeeper configuration
+  import_playbook: kafka-zookeeper.yml
+- name: Kafka - Creating Kafka-Spark default topic
+  import_playbook: kafka-topic.yml
+- name: Retreaving external IP
+  import_playbook: get-external-ip.yml

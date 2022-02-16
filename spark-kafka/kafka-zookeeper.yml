@@ -1,0 +1,51 @@
+---
+- name: Configuracion Kafka-Zookeeper
+  hosts: masters
+  remote_user: "{{ vm_username }}"
+  vars_files:
+    - vm-vars.yml
+    - cluster-hosts.yml
+  tasks:
+
+- name: configurando Zookeeper properties
+    lineinfile:
+      path: /opt/app/kafka/config/zookeeper.properties
+      regexp: '^(.*)dataDir=(.*)$'
+      line: 'dataDir=/opt/app/kafka/local/zookeeper'
+      backrefs: yes
+    tags:
+      - configzoo
+
+    - name: configurando server properties logs
+      lineinfile:
+        path: /opt/app/kafka/config/server.properties
+        regexp: '^(.*)log.dirs=(.*)$'
+        line: 'log.dirs=/opt/app/kafka/local/logs '
+        backrefs: yes
+      tags:
+        - configserver_logs
+
+    - name: configurando server properties zookeeper
+      lineinfile:
+        path: /opt/app/kafka/config/server.properties
+        regexp: '^(.*)zookeeper.connect=(.*)$'
+        line: "zookeeper.connect={{ masters | first }}:2181"
+        backrefs: yes
+      tags:
+        - configserver_zoo
+
+    - name: configurando server properties listeners
+      lineinfile:
+        path: /opt/app/kafka/config/server.properties
+        regexp: '^(.*)listeners=(.*)$'
+        line: "listeners=PLAINTEXT://{{ masters | first }}:9092"
+        backrefs: yes
+      tags:
+        - configserver_list
+
+    - name: Cargando demonios Kafka
+      shell: |
+        /opt/app/kafka/bin/zookeeper-server-start.sh
+        /opt/app/kafka/bin/kafka-server-start.sh
+      tags:
+        - demonioskafka

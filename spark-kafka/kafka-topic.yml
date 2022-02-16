@@ -1,0 +1,15 @@
+- name: Creando topic kafka
+  hosts: masters
+  remote_user: "{{ vm_username }}"
+  become: yes
+  vars_files:
+    - vm-vars.yml
+    - cluster-hosts.yml
+  tasks:
+
+  - name: crear topic kafkfa
+    shell: |
+      /opt/app/kafka/bin/kafka-topics.sh --create --zookeeper {{ masters | first }}:2181 --replication-factor 1 --partitions 1 --topic spark-topic
+    become: no
+    tags:
+      - topickafka
