@@ -2,6 +2,7 @@
 - name: Instalacion Kafka
   hosts: masters
   remote_user: "{{ vm_username }}"
+  become: yes
   vars_files:
     - vm-vars.yml
     - cluster-hosts.yml
@@ -9,7 +10,7 @@
 
   - name: Descargando Kafka
     get_url:
-      url: http://apache.rediris.es/kafka/2.3.1/kafka_2.12-2.3.1.tgz
+      url: https://archive.apache.org/dist/kafka/2.3.1/kafka_2.12-2.3.1.tgz 
       dest: /opt/app
       mode: 0755
       owner: "{{ vm_username }}"
@@ -18,12 +19,12 @@
       - dkafka
 
   - name: Descomprimiendo archivos kafka
-      unarchive:
-        src: /opt/app/kafka_2.12-2.3.1.tgz
-        dest: /opt/app
-        remote_src: yes
-      tags:
-        - tkafka
+    unarchive:
+      src: /opt/app/kafka_2.12-2.3.1.tgz
+      dest: /opt/app
+      remote_src: yes
+    tags:
+      - tkafka
 
   - name: Borrando arhivos kafka
     shell: |
@@ -32,15 +33,17 @@
       - rmkakfa
 
   - name: Owner directorio Kafka
+    become: yes
     shell: |
-      "chown -R {{ vm_username }}:{{ vm_username }} /opt/app/kafka_2.12-2.3.1"
-      ln -s /opt/app/kafka_2.12-2.3.1 /opt/app/kafka
+      chown -R {{ vm_username }}:{{ vm_username }} /opt/app/kafka_2.12-2.3.1
+      ln -sfn /opt/app/kafka_2.12-2.3.1 /opt/app/kafka
     tags:
       - ownerkafka
 
   - name: Owner directorio url Kafka
+    become: yes
     shell: |
-      "chown -R {{ vm_username }}:{{ vm_username }}/opt/app/kafka"
+      chown -h {{ vm_username }}:{{ vm_username }} /opt/app/kafka
     tags:
       - ownerkafka_l
 
@@ -50,6 +53,6 @@
       mkdir /opt/app/kafka/local/logs
       mkdir /opt/app/kafka/local/zookeeper
       chmod a+w /opt/app/kafka/local/zookeeper /opt/app/kafka/local/logs
-    become: no
+    become: yes
     tags:
       - dirkafka
